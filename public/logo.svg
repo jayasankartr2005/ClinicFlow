@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" width="160" height="40" fill="none">
+  <rect x="2" y="4" width="32" height="32" rx="8" fill="#0284c7" />
+  <path d="M18 10v20M8 20h20" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+  <text x="44" y="26" font-family="Inter, sans-serif" font-size="20" font-weight="700" fill="#0f172a">Clinic<tspan fill="#0284c7">Flow</tspan></text>
+</svg>
