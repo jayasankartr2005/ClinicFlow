@@ -19,7 +19,7 @@
 ## 🌐 Live Application & Access Details
 
 - **Public Live Application URL:** [https://clinicflow-saas.vercel.app](https://clinicflow-saas.vercel.app) *(or active temporary preview deployment)*
-- **GitHub Repository URL:** `<Provided upon evaluation submission>`
+- **GitHub Repository URL:** [https://github.com/jayasankartr2005/ClinicFlow](https://github.com/jayasankartr2005/ClinicFlow)
 - **Supabase Cloud Backend:** Managed PostgreSQL 15+, Supabase Auth, Storage & Edge Functions
 
 ### 🔑 Active Testing Login Credentials

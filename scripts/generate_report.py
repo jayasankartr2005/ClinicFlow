@@ -74,7 +74,7 @@ def create_full_report():
         'Team Member 2 – Name & Reg. No.': 'T. R. Jayasankar – 23BLC1190 (Individual Project Submission)',
         'Faculty / Slot': 'BCSE408L — Cloud Computing (Winter 2025–26 / Fall 2026)',
         'Public Live URL': 'https://clinicflow-saas.vercel.app',
-        'GitHub Repository URL': 'https://github.com/jayasankartr2005/clinicflow-saas',
+        'GitHub Repository URL': 'https://github.com/jayasankartr2005/ClinicFlow',
         'Submission Deadline': '28/10/2026'
     }
 
