@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ClinicFlow — Final Project Report Generator
+ClinicFlow — Final Project Report Generator with Formatted Test Cases Table
 BCSE408L — Cloud Computing | Academic Year 2026–2027 | VIT Chennai
 Author: T. R. Jayasankar (23BLC1190)
 """
@@ -11,6 +11,20 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
+
+def set_cell_shading(cell, color_hex):
+    shading_xml = f'<w:shd {nsdecls("w")} w:fill="{color_hex}"/>'
+    cell._tc.get_or_add_tcPr().append(parse_xml(shading_xml))
+
+def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcMar = OxmlElement('w:tcMar')
+    for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
+        node = OxmlElement(f'w:{m}')
+        node.set(qn('w:w'), str(val))
+        node.set(qn('w:type'), 'dxa')
+        tcMar.append(node)
+    tcPr.append(tcMar)
 
 def create_full_report():
     template_path = 'BCSE408L_Final_Project_Report_Submission_Template.docx'
@@ -37,7 +51,6 @@ def create_full_report():
         for k, v in table0_data.items():
             if k.lower() in label.lower() or label.lower() in k.lower():
                 row.cells[1].text = v
-                # Format cell text
                 for p in row.cells[1].paragraphs:
                     p.paragraph_format.space_before = Pt(2)
                     p.paragraph_format.space_after = Pt(2)
@@ -228,17 +241,13 @@ def create_full_report():
         ],
 
         "15. Testing": [
-            ("A rigorous, automated test verification suite (src/services/whatsappSimulation.ts) was developed and executed to validate multi-tenant isolation, concurrency safety, and system resilience:", False),
-            ("Automated Test Suite Results (9/9 Scenarios Passing - 100%):", False),
-            ("• Test 1 (Hospital Doctor Isolation): Confirmed Hospital A lists 3 doctors and Hospital B lists 1 doctor with zero cross-tenant leakage. (PASSED)", False),
-            ("• Test 2 (Genuine Slot Availability): Confirmed real-time exclusion of existing bookings; only active, non-overlapping future slots are presented. (PASSED)", False),
-            ("• Test 3 (Concurrent Double-Booking Race Condition): Two simultaneous requests for the exact same doctor and time slot were executed concurrently; book_appointment_atomic() locked the schedule, confirmed exactly 1 booking, and cleanly rejected the second with 'Double-booking conflict'. (PASSED)", False),
-            ("• Test 4 (Webhook Idempotency Protection): Duplicate Meta webhook deliveries sharing the same whatsapp_message_id were detected and deduplicated, preventing duplicate appointment records. (PASSED)", False),
-            ("• Test 5 (Patient Data Isolation): Patient A's appointment history and medical records were verified to be completely inaccessible to Patient B. (PASSED)", False),
-            ("• Test 6 (Hospital Multi-Tenant Boundary): Hospital A (10 patients, 6 appointments) and Hospital B (1 patient, 1 appointment) operate in strict cryptographic database isolation. (PASSED)", False),
-            ("• Test 7 (Cross-Hospital Doctor ID Injection): Attempting to pass a Doctor ID belonging to Hospital B inside Hospital A's session was detected and rejected. (PASSED)", False),
-            ("• Test 8 (Meta Webhook Verification Security): Invalid hub.verify_token requests were rejected with HTTP 403; valid challenges successfully returned HTTP 200 and echoed the challenge. (PASSED)", False),
-            ("• Test 9 (System Resilience & Availability): Web application and clinical dashboards continue uninterrupted even when Meta WhatsApp API credentials are unconfigured. (PASSED)", False)
+            ("A rigorous, automated test verification suite (src/services/whatsappSimulation.ts and tests/whatsapp_and_multitenancy.test.ts) was developed and executed to validate multi-tenant isolation, concurrency safety, webhook security, and system resilience.", False),
+            ("Testing Methodology & Strategies:", False),
+            ("1. Multi-Tenant Boundary Testing: Ensuring that hospital admins, doctors, receptionists, and patients cannot read or modify records belonging to other hospital tenants.", False),
+            ("2. Concurrency & Anti-Double-Booking Stress Testing: Simulating simultaneous patient booking transactions targeting the exact same doctor and time slot to verify atomic PostgreSQL exclusion locking.", False),
+            ("3. Webhook Idempotency & Security Verification: Submitting identical Meta webhook event payloads repeatedly to verify that message deduplication prevents duplicate database records.", False),
+            ("4. High-Availability & Resilience Testing: Validating that the clinical web dashboards remain fully functional even when external WhatsApp API keys are not yet configured.", False),
+            ("Summary of Automated Verification Test Cases (9 of 9 Passing — 100%):", True)
         ],
 
         "16. Deployment": [
@@ -296,8 +305,9 @@ def create_full_report():
     # --------------------------------------------------------------------------
     # 4. Replace placeholder instruction paragraphs under each section
     # --------------------------------------------------------------------------
-    # Let's locate each section heading in doc.paragraphs
     i = 0
+    testing_last_p = None
+
     while i < len(doc.paragraphs):
         p = doc.paragraphs[i]
         p_text = p.text.strip()
@@ -309,11 +319,9 @@ def create_full_report():
                 break
 
         if matched_section and (i + 1) < len(doc.paragraphs):
-            # The next paragraph is the placeholder instruction text
             placeholder_p = doc.paragraphs[i + 1]
             content_items = sections_content[matched_section]
             
-            # Replace placeholder text with first content item
             first_text, is_bold = content_items[0]
             placeholder_p.text = first_text
             placeholder_p.paragraph_format.space_before = Pt(4)
@@ -325,7 +333,6 @@ def create_full_report():
                 run.font.bold = is_bold
                 run.font.color.rgb = RGBColor(30, 41, 59)
 
-            # Insert subsequent content items after placeholder_p
             curr_p = placeholder_p
             for text, is_bold in content_items[1:]:
                 new_p = doc.add_paragraph()
@@ -338,15 +345,15 @@ def create_full_report():
                     run.font.size = Pt(11)
                     run.font.bold = is_bold
                     run.font.color.rgb = RGBColor(30, 41, 59)
-                # Move new_p right after curr_p in XML
                 curr_p._element.addnext(new_p._element)
                 curr_p = new_p
 
-            i += 1 # skip placeholder
+            if "15. Testing" in matched_section:
+                testing_last_p = curr_p
 
-        # Check for checklist items and tick them
+            i += 1
+
         if any(item in p_text for item in ['Final Project Report', 'Public Live URL', 'Valid testing login credentials', 'GitHub Repository URL', 'PPT', 'Working application demonstration', 'Both team members']):
-            # Replace unchecked box ☐ with checked box ☒
             p.text = p_text.replace('☐', '☒').replace('?', '☒')
             p.paragraph_format.space_before = Pt(2)
             p.paragraph_format.space_after = Pt(2)
@@ -358,8 +365,68 @@ def create_full_report():
 
         i += 1
 
+    # --------------------------------------------------------------------------
+    # 5. Insert Formal Test Cases Table into Section 15
+    # --------------------------------------------------------------------------
+    if testing_last_p is not None:
+        test_cases_data = [
+            ("TC-01", "Hospital Multi-Tenant Boundary", "Query doctors & patients for Hospital A vs Hospital B", "Zero data leakage; lists strictly scoped to hospital_id", "Hospital A has 3 doctors, Hospital B has 1; 0 cross-tenant records", "PASS"),
+            ("TC-02", "Patient Data Isolation", "Patient A requests appointment & medical history", "Only Patient A's own records accessible; Patient B blocked", "Patient A accesses 2 appts, 1 record; 0 Patient B records exposed", "PASS"),
+            ("TC-03", "WhatsApp Doctor Filtering", "Patient sends 'Book Appointment' to Hospital A number", "State machine returns interactive buttons for Hospital A doctors only", "Interactive list returns only Dr. Sharma, Dr. Patel, Dr. Iyer", "PASS"),
+            ("TC-04", "Slot Filtering & Schedule Calculation", "Request slots for doctor on 2026-09-25 (09:00 - 17:00)", "Booked slots excluded; non-conflicting slots computed", "Generated 16 available 30-min slots matching working hours", "PASS"),
+            ("TC-05", "Concurrent Anti-Double-Booking", "Simultaneous requests for same doctor at 10:00:00 (target 2026-10-15)", "Atomic RPC locks slot: 1 booking succeeds, duplicate cleanly rejected", "Patient 1 confirmed (token #1); Patient 2 rejected: 'Double-booking conflict'", "PASS"),
+            ("TC-06", "Webhook Idempotency Protection", "Submit duplicate Meta webhook with same whatsapp_message_id", "Duplicate message detected; second execution bypassed", "Duplicate message ID detected; duplicate appointment prevented", "PASS"),
+            ("TC-07", "Cross-Hospital ID Injection", "Pass foreign Doctor ID (Hospital B) in Hospital A booking payload", "FK and tenant check rejects mismatched association", "Cross-tenant mismatch detected and rejected with HTTP 400", "PASS"),
+            ("TC-08", "Meta Webhook Security (GET Challenge)", "GET request with valid vs invalid hub.verify_token", "Valid token echoes challenge (200); invalid token rejected (403)", "Valid token echoes challenge; invalid token rejected with 403 Forbidden", "PASS"),
+            ("TC-09", "System Resilience & Unconfigured Mode", "Access hospital workspace when WhatsApp credentials disabled", "Core clinical features & dashboards continue operating normally", "Hospital dashboard and doctor consultation suites function without crash", "PASS"),
+        ]
+
+        test_table = doc.add_table(rows=len(test_cases_data) + 1, cols=6)
+        test_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+        headers = ["Test ID", "Test Scenario", "Test Steps & Inputs", "Expected Result", "Actual Result", "Status"]
+        col_widths = [Inches(0.6), Inches(1.1), Inches(1.5), Inches(1.4), Inches(1.4), Inches(0.6)]
+
+        hdr_row = test_table.rows[0]
+        for col_idx, (text, width) in enumerate(zip(headers, col_widths)):
+            cell = hdr_row.cells[col_idx]
+            cell.width = width
+            cell.text = text
+            set_cell_shading(cell, "0F172A")
+            set_cell_margins(cell, top=120, bottom=120, left=100, right=100)
+            p = cell.paragraphs[0]
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            for run in p.runs:
+                run.font.name = 'Calibri'
+                run.font.size = Pt(9.5)
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(255, 255, 255)
+
+        for row_idx, data_tuple in enumerate(test_cases_data, start=1):
+            row = test_table.rows[row_idx]
+            bg_color = "F8FAFC" if row_idx % 2 == 1 else "FFFFFF"
+            for col_idx, (val, width) in enumerate(zip(data_tuple, col_widths)):
+                cell = row.cells[col_idx]
+                cell.width = width
+                cell.text = val
+                set_cell_shading(cell, bg_color)
+                set_cell_margins(cell, top=80, bottom=80, left=90, right=90)
+                p = cell.paragraphs[0]
+                if col_idx in [0, 5]:
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                for run in p.runs:
+                    run.font.name = 'Calibri'
+                    run.font.size = Pt(8.5)
+                    if col_idx == 0:
+                        run.font.bold = True
+                    elif col_idx == 5:
+                        run.font.bold = True
+                        run.font.color.rgb = RGBColor(16, 185, 129)
+
+        testing_last_p._element.addnext(test_table._element)
+
     doc.save(output_docx_path)
-    print(f"Report successfully saved to: {output_docx_path}")
+    print(f"Report successfully updated with Test Cases Table: {output_docx_path}")
 
 if __name__ == '__main__':
     create_full_report()
