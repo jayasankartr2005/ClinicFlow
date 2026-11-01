@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-ClinicFlow — Final Project Report Generator with Formatted Test Cases Table
+ClinicFlow — Final Project Report Generator with High-Res Diagrams & Live Screenshots
 BCSE408L — Cloud Computing | Academic Year 2026–2027 | VIT Chennai
 Author: T. R. Jayasankar (23BLC1190)
 """
 
+import os
 import docx
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -25,6 +26,37 @@ def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
         node.set(qn('w:type'), 'dxa')
         tcMar.append(node)
     tcPr.append(tcMar)
+
+def insert_image_with_caption(doc, anchor_p, img_filename, caption_text, width_inches=5.8):
+    img_path = os.path.join('docs_images', img_filename)
+    if not os.path.exists(img_path):
+        print(f"Warning: Image {img_path} not found.")
+        return anchor_p
+
+    # Add image paragraph
+    img_p = doc.add_paragraph()
+    img_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    img_p.paragraph_format.space_before = Pt(8)
+    img_p.paragraph_format.space_after = Pt(2)
+    run_img = img_p.add_run()
+    run_img.add_picture(img_path, width=Inches(width_inches))
+
+    # Add caption paragraph
+    cap_p = doc.add_paragraph()
+    cap_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cap_p.paragraph_format.space_before = Pt(2)
+    cap_p.paragraph_format.space_after = Pt(8)
+    run_cap = cap_p.add_run(caption_text)
+    run_cap.font.name = 'Calibri'
+    run_cap.font.size = Pt(9.5)
+    run_cap.font.italic = True
+    run_cap.font.color.rgb = RGBColor(100, 116, 139)
+
+    # Move elements after anchor_p
+    anchor_p._element.addnext(img_p._element)
+    img_p._element.addnext(cap_p._element)
+
+    return cap_p
 
 def create_full_report():
     template_path = 'BCSE408L_Final_Project_Report_Submission_Template.docx'
@@ -224,12 +256,13 @@ def create_full_report():
 
         "13. User Interface Design": [
             ("The user interface of ClinicFlow was designed adhering to professional clinical ergonomics and high information density:", False),
-            ("Key Implemented Interfaces:", False),
-            ("• Supercoordinator Platform Dashboard: Features global KPI indicator cards (Total Network Hospitals, Active Medical Staff, Real-Time WhatsApp Sessions), hospital health cards with operational toggles, and multi-tenant audit logs.", False),
-            ("• Hospital Admin Management Suite: Features staff roster tables with modal dialogues for user provisioning, department categorization, and WhatsApp credential management.", False),
-            ("• Doctor Consultation Suite: Clean, distraction-free clinical environment displaying patient demographics, chronological medical history, vitals input panels, diagnosis recording, and structured Rx builders.", False),
-            ("• Receptionist Front-Desk Queue: High-contrast dispatch board displaying daily appointment tokens, status badges (Waiting, In Consultation, Completed, Cancelled), and fast-action intake drawers.", False),
-            ("• WhatsApp Interactive Smartphone Simulator: A responsive, simulated mobile device embedded in the Supercoordinator monitoring panel, enabling real-time end-to-end testing of WhatsApp message flows directly inside the browser.", False)
+            ("Key Implemented Interfaces & Screen Walkthroughs:", False),
+            ("• Role-Aware Authentication: Provides secure JWT login with quick 1-click role selection to test all 4 platform roles.", False),
+            ("• Supercoordinator Platform Dashboard: Renders live hospital status cards, staff counts, active WhatsApp conversation counters, and global health metrics.", False),
+            ("• Interactive WhatsApp Smartphone Simulator: Embedded directly within the monitoring dashboard, allowing evaluators to simulate real-time patient WhatsApp chat interactions without requiring physical devices.", False),
+            ("• Hospital Management & Roster Suite: Allows hospital admins to manage clinical staff rosters and configure hospital-specific Meta WhatsApp credentials.", False),
+            ("• Doctor Consultation Suite: High-density clinical workspace with electronic multi-drug prescription generators, vital sign logging, and patient history.", False),
+            ("• Receptionist Front-Desk Dispatcher: Queue dashboard displaying daily patient tokens, waiting status badges, and walk-in scheduling.", False)
         ],
 
         "14. Implementation": [
@@ -306,7 +339,7 @@ def create_full_report():
     # 4. Replace placeholder instruction paragraphs under each section
     # --------------------------------------------------------------------------
     i = 0
-    testing_last_p = None
+    section_anchors = {}
 
     while i < len(doc.paragraphs):
         p = doc.paragraphs[i]
@@ -348,9 +381,7 @@ def create_full_report():
                 curr_p._element.addnext(new_p._element)
                 curr_p = new_p
 
-            if "15. Testing" in matched_section:
-                testing_last_p = curr_p
-
+            section_anchors[matched_section] = curr_p
             i += 1
 
         if any(item in p_text for item in ['Final Project Report', 'Public Live URL', 'Valid testing login credentials', 'GitHub Repository URL', 'PPT', 'Working application demonstration', 'Both team members']):
@@ -366,9 +397,43 @@ def create_full_report():
         i += 1
 
     # --------------------------------------------------------------------------
-    # 5. Insert Formal Test Cases Table into Section 15
+    # 5. Insert Diagrams & Screenshots into Respective Sections
     # --------------------------------------------------------------------------
-    if testing_last_p is not None:
+    # Section 9: System Architecture Diagram
+    if "9. System Architecture" in section_anchors:
+        anchor = section_anchors["9. System Architecture"]
+        insert_image_with_caption(doc, anchor, '01_system_architecture.png', 'Figure 9.1: ClinicFlow System Architecture and Multi-Tenant Hierarchy', width_inches=6.0)
+
+    # Section 10: Cloud Architecture Diagram
+    if "10. Cloud Architecture" in section_anchors:
+        anchor = section_anchors["10. Cloud Architecture"]
+        insert_image_with_caption(doc, anchor, '02_cloud_architecture.png', 'Figure 10.1: ClinicFlow Multi-Cloud Service Topology (Vercel Edge, Supabase DBaaS & Meta API)', width_inches=6.0)
+
+    # Section 11: Database Design (ER Diagram)
+    if "11. Database Design" in section_anchors:
+        anchor = section_anchors["11. Database Design"]
+        insert_image_with_caption(doc, anchor, '03_database_er_diagram.png', 'Figure 11.1: ClinicFlow Relational Database Schema & Entity-Relationship Diagram', width_inches=6.2)
+
+    # Section 13: User Interface Screenshots
+    if "13. User Interface Design" in section_anchors:
+        anchor = section_anchors["13. User Interface Design"]
+        ui_images = [
+            ('04_login_screen.png', 'Figure 13.1: Role-Aware Login & 1-Click Multi-Role Demonstration Interface', 5.6),
+            ('05_supercoordinator_dashboard.png', 'Figure 13.2: Supercoordinator Platform Operations & Health Telemetry Dashboard', 5.6),
+            ('06_whatsapp_simulator.png', 'Figure 13.3: Interactive In-App WhatsApp Smartphone Simulator & Booking Flow', 5.6),
+            ('07_hospital_management.png', 'Figure 13.4: Hospital Administration, Staff Rostering & WhatsApp Configuration', 5.6),
+            ('08_doctor_dashboard.png', 'Figure 13.5: Doctor Clinical Dashboard & Real-Time Appointment Schedule', 5.6),
+            ('09_receptionist_queue.png', 'Figure 13.6: Receptionist Front-Desk Queue Management & Token Dispatcher', 5.6),
+        ]
+        curr_anchor = anchor
+        for img_file, cap_text, w in ui_images:
+            curr_anchor = insert_image_with_caption(doc, curr_anchor, img_file, cap_text, width_inches=w)
+
+    # --------------------------------------------------------------------------
+    # 6. Insert Formal Test Cases Table into Section 15
+    # --------------------------------------------------------------------------
+    if "15. Testing" in section_anchors:
+        testing_last_p = section_anchors["15. Testing"]
         test_cases_data = [
             ("TC-01", "Hospital Multi-Tenant Boundary", "Query doctors & patients for Hospital A vs Hospital B", "Zero data leakage; lists strictly scoped to hospital_id", "Hospital A has 3 doctors, Hospital B has 1; 0 cross-tenant records", "PASS"),
             ("TC-02", "Patient Data Isolation", "Patient A requests appointment & medical history", "Only Patient A's own records accessible; Patient B blocked", "Patient A accesses 2 appts, 1 record; 0 Patient B records exposed", "PASS"),
@@ -426,7 +491,7 @@ def create_full_report():
         testing_last_p._element.addnext(test_table._element)
 
     doc.save(output_docx_path)
-    print(f"Report successfully updated with Test Cases Table: {output_docx_path}")
+    print(f"Report successfully generated with all 9 diagrams & screenshots: {output_docx_path}")
 
 if __name__ == '__main__':
     create_full_report()
